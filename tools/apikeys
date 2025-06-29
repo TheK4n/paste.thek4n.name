@@ -12,13 +12,14 @@ cmd_list_keys() {
     for key in $(redis --raw KEYS '*')
     do
         valid="$(redis --raw HGET "${key}" valid)"
+        id="$(redis --raw HGET "${key}" id)"
 
         validmsg="invalid"
         if [ "${valid}" = "true" ]; then
             validmsg="valid"
         fi
 
-        printf "%s - %s\n" "${key}" "${validmsg}"
+        printf "%s - %s\n" "[${id}] ${key}" "${validmsg}"
     done
 }
 
@@ -50,7 +51,8 @@ cmd_remove_key() {
 
 cmd_generate() {
     newkey="$(openssl rand -hex 32)"
-    redis HSET "${newkey}" valid true 1>/dev/null 2>/dev/null
+    newkeyid="$(uuidgen)"
+    redis HSET "${newkey}" valid true id "${newkeyid}"  1>/dev/null 2>/dev/null
     echo "${newkey}"
 }
 

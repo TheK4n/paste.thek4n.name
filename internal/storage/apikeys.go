@@ -10,24 +10,12 @@ import (
 )
 
 type APIKeyRecord struct {
-	Valid bool `redis:"valid"`
+	ID    string `redis:"id"`
+	Valid bool   `redis:"valid"`
 }
 
 type APIKeysDB struct {
 	Client *redis.Client
-}
-
-func (db *APIKeysDB) Set(ctx context.Context, key string) error {
-	record := APIKeyRecord{
-		Valid: true,
-	}
-
-	err := db.Client.HSet(ctx, key, record).Err()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (db *APIKeysDB) Get(ctx context.Context, key string) (APIKeyRecord, error) {

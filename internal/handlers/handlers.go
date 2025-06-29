@@ -84,8 +84,17 @@ func (app *Application) Cache(w http.ResponseWriter, r *http.Request) {
 	remoteAddr := getClientIP(r)
 	authorized := false
 	apikey := r.URL.Query().Get("apikey")
+	apikeyID := ""
+	var err error
 	if apikey != "" {
 		authorized = app.validateApikey(apikey)
+	}
+
+	if authorized {
+		apikeyID, err = app.getApiKeyID(apikey)
+		if err != nil {
+			log.Printf("WARNING: cant fetch apikey id for '%s'", apikey)
+		}
 	}
 
 	if !authorized {
@@ -147,7 +156,7 @@ func (app *Application) Cache(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		err := app.Broker.SendAPIKeyUsageLog(apikey, apikeysm.UsageReason_PERSISTKEY, remoteAddr)
+		err := app.Broker.SendAPIKeyUsageLog(apikeyID, apikeysm.UsageReason_PERSISTKEY, remoteAddr)
 		if err != nil {
 			log.Printf("warning: error to publish to broker")
 		}
@@ -175,7 +184,7 @@ func (app *Application) Cache(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		err := app.Broker.SendAPIKeyUsageLog(apikey, apikeysm.UsageReason_CUSTOMKEYLEN, remoteAddr)
+		err := app.Broker.SendAPIKeyUsageLog(apikeyID, apikeysm.UsageReason_CUSTOMKEYLEN, remoteAddr)
 		if err != nil {
 			log.Printf("warning: error to publish to broker")
 		}
@@ -232,7 +241,7 @@ func (app *Application) Cache(w http.ResponseWriter, r *http.Request) {
 
 	if authorized {
 		if requestedKey != "" {
-			err := app.Broker.SendAPIKeyUsageLog(apikey, apikeysm.UsageReason_CUSTOMKEY, remoteAddr)
+			err := app.Broker.SendAPIKeyUsageLog(apikeyID, apikeysm.UsageReason_CUSTOMKEY, remoteAddr)
 			if err != nil {
 				log.Printf("warning: error to publish to broker")
 			}
@@ -248,7 +257,7 @@ func (app *Application) Cache(w http.ResponseWriter, r *http.Request) {
 	}
 	if authorized {
 		if r.ContentLength > config.UNPREVELEGED_MAX_BODY_SIZE {
-			err := app.Broker.SendAPIKeyUsageLog(apikey, apikeysm.UsageReason_LARGEBODY, remoteAddr)
+			err := app.Broker.SendAPIKeyUsageLog(apikeyID, apikeysm.UsageReason_LARGEBODY, remoteAddr)
 			if err != nil {
 				log.Printf("warning: error to publish to broker")
 			}
@@ -559,6 +568,15 @@ func (app *Application) validateApikey(str string) bool {
 	}
 
 	return record.Valid
+}
+
+func (app *Application) getApiKeyID(str string) (string, error) {
+	record, err := app.ApiKeysDB.Get(context.Background(), str)
+	if err != nil {
+		return "", err
+	}
+
+	return record.ID, nil
 }
 
 func getClientIP(r *http.Request) string {

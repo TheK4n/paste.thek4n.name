@@ -2,6 +2,7 @@ package apikeys
 
 import (
 	"fmt"
+	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"google.golang.org/protobuf/proto"
@@ -14,9 +15,9 @@ type Broker struct {
 	Channel *amqp.Channel
 }
 
-func (b *Broker) SendAPIKeyUsageLog(apikey string, reason apikeys.UsageReason, fromIP string) error {
+func (b *Broker) SendAPIKeyUsageLog(apikeyID string, reason apikeys.UsageReason, fromIP string) error {
 	a := &apikeys.APIKeyUsage{
-		ApikeyId: apikey,
+		ApikeyId: apikeyID,
 		Reason:   reason,
 		FromIP:   fromIP,
 	}
@@ -65,6 +66,8 @@ func InitBroker(connectURL string) (*Broker, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a rabbitmq exchange '%s': %w", config.APIKEYUSAGE_EXCHANGE, err)
 	}
+
+	log.Printf("Connected to rabbitmq\n")
 
 	return &Broker{
 		Channel: ch,
