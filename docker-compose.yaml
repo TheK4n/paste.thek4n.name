@@ -19,6 +19,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      broker:
+        condition: service_started
 
     ports:
       - 8081:80
@@ -28,6 +30,7 @@ services:
 
     environment:
       REDIS_HOST: 'paste-db'
+      BROKER_HOST: 'paste-rabbitmq'
 
     restart: unless-stopped
 
@@ -60,3 +63,10 @@ services:
       retries: 5
       start_period: 1s
       start_interval: 3s
+
+  broker:
+    image: rabbitmq
+    container_name: 'paste-rabbitmq'
+    networks:
+      - paste-network
+    restart: unless-stopped

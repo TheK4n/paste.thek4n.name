@@ -14,9 +14,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/thek4n/paste.thek4n.name/internal/apikeys"
 	"github.com/thek4n/paste.thek4n.name/internal/config"
 	"github.com/thek4n/paste.thek4n.name/internal/keys"
 	"github.com/thek4n/paste.thek4n.name/internal/storage"
+	apikeysm "github.com/thek4n/paste.thek4n.name/pkg/apikeys"
 )
 
 const REDIRECT_BODY = `<html><head>
@@ -31,6 +33,7 @@ type Application struct {
 	DB        storage.KeysDB
 	ApiKeysDB storage.APIKeysDB
 	QuotaDB   storage.QuotaDB
+	Broker    apikeys.Broker
 }
 
 type HealthcheckResponse struct {
@@ -144,6 +147,10 @@ func (app *Application) Cache(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
+		err := app.Broker.SendAPIKeyUsageLog(apikey, apikeysm.UsageReason_PERSISTKEY, remoteAddr)
+		if err != nil {
+			log.Printf("warning: error to publish to broker")
+		}
 	}
 
 	length, errGetLength := getLength(r)
@@ -167,6 +174,10 @@ func (app *Application) Cache(w http.ResponseWriter, r *http.Request) {
 			)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
+		}
+		err := app.Broker.SendAPIKeyUsageLog(apikey, apikeysm.UsageReason_CUSTOMKEYLEN, remoteAddr)
+		if err != nil {
+			log.Printf("warning: error to publish to broker")
 		}
 	}
 
@@ -219,11 +230,28 @@ func (app *Application) Cache(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if authorized {
+		if requestedKey != "" {
+			err := app.Broker.SendAPIKeyUsageLog(apikey, apikeysm.UsageReason_CUSTOMKEY, remoteAddr)
+			if err != nil {
+				log.Printf("warning: error to publish to broker")
+			}
+		}
+	}
+
 	if !authorized {
 		if r.ContentLength > config.UNPREVELEGED_MAX_BODY_SIZE {
 			w.WriteHeader(http.StatusRequestEntityTooLarge)
 			_, _ = fmt.Fprintf(w, "Body too large. Maximum is %d bytes", config.UNPREVELEGED_MAX_BODY_SIZE)
 			return
+		}
+	}
+	if authorized {
+		if r.ContentLength > config.UNPREVELEGED_MAX_BODY_SIZE {
+			err := app.Broker.SendAPIKeyUsageLog(apikey, apikeysm.UsageReason_LARGEBODY, remoteAddr)
+			if err != nil {
+				log.Printf("warning: error to publish to broker")
+			}
 		}
 	}
 

@@ -36,3 +36,5 @@ const QUOTA = 50
 
 // Compress
 const COMPRESS_THRESHOLD_BYTES = 4096
+
+const APIKEYUSAGE_EXCHANGE = "apikeysusage"

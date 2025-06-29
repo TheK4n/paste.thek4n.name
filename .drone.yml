@@ -58,6 +58,7 @@ steps:
     image: golang:1.23
     environment:
       REDIS_HOST: redis-test
+      BROKER_HOST: rabbitmq-test
     commands:
       - ./make test
     depends_on:
@@ -125,6 +126,10 @@ services:
     image: redis:8
     ports:
       - 6379
+  - name: rabbitmq-test
+    image: rabbitmq:3
+    ports:
+      - 5672
 
 volumes:
 - name: go-build-cache

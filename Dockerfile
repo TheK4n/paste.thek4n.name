@@ -11,20 +11,10 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     OUTPUTDIR="/app/" APP_VERSION=$APP_VERSION ./make build
 
 
-# upx
-FROM ubuntu:22.04 AS upx
-
-RUN apt-get update -y && apt-get install -y --no-install-recommends upx
-
-COPY --from=builder /app/ /app
-
-RUN upx --best --no-lzma /app/*
-
-
 # runtime
 FROM scratch
 
-COPY --from=upx /app/ /app
+COPY --from=builder /app/ /app
 
 EXPOSE 80
 

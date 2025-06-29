@@ -4,8 +4,10 @@ go 1.23.4
 
 require (
 	github.com/jessevdk/go-flags v1.6.1
+	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/stretchr/testify v1.10.0
+	google.golang.org/protobuf v1.36.6
 )
 
 require (
